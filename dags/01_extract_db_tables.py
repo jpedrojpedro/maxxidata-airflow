@@ -3,6 +3,7 @@ import datetime as dt
 from airflow.models import DAG
 from airflow.utils.trigger_rule import TriggerRule
 from airflow.operators.dummy import DummyOperator
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from airflow.providers.sqlite.operators.sqlite import SqliteOperator
 from airflow.providers.sqlite.hooks.sqlite import SqliteHook
 from utils.helper import apply_task_downstream
@@ -64,5 +65,12 @@ for table_name in ['Artist', 'Album']:
         df = sqlite_hook.get_pandas_df(sql=f'select * from {table_name}')
         df.to_csv(f'/opt/airflow/outputs/{table_name}.csv', index=False)
     sequence.append(extract_table())
+
+trigger_transformation = TriggerDagRunOperator(
+    task_id='trigger_transformation_dag',
+    trigger_dag_id='02_transform_data',
+    dag=dag,
+)
+sequence.append(trigger_transformation)
 
 apply_task_downstream(sequence)
